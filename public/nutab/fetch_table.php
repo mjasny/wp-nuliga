@@ -33,7 +33,7 @@ error_reporting(E_ALL & ~(E_NOTICE|E_DEPRECATED));
 
 // zum testen kann der Cache auch mal disabled werden. 
 // Man sollte aber immer mit arbeiten, weil das die Aufbauzeiten der eigenen Seiten verbessert, und die Last auf die nu Server senkt.
-define("DISABLE_CACHE", 1); 
+define("DISABLE_CACHE", 0); 
 
 // alle Parameter als global einlesen
 // auch dies kann man mal besser machen, wenn man will
