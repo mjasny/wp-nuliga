@@ -18,6 +18,7 @@ spielplanverein: true sagt: gesamt-spielplan laden, nicht aktuell
 aktuell gibt es in nuLiga nicht mehr, ist aus ISS3 übriggeblieben, entfernen
 cty: content type (falls der Aufrufer was ganz spezielles braucht)
 jh: JSON header content
+auchak: in die Tabellen ist auch AK Mannschaften normal drin, und nicht am Ende mit AK
 
 Aufruf erfolgt über JSONP
 
@@ -54,9 +55,10 @@ if (1 and !ini_get('register_globals')) {
 	unset($superglobal);
 	unset($superglobals);
 }
-ini_set("default_charset","ISO8859-1");
+@ini_set("default_charset","ISO8859-1");
+@ini_set("date.timezone", "Europe/Berlin");
 // damit preg_match_all auch für lange strings geht
-ini_set("pcre.backtrack_limit","8000000");
+@ini_set("pcre.backtrack_limit","8000000");
 
 ob_start(); // damit warnings nicht in das XML kommen
 
@@ -67,6 +69,7 @@ $q = preg_replace("/_=.*?(&|$)/", "", $q);
 $callback = preg_replace('/[^a-zA-Z0-9$_.]/', "", array_key_exists("callback", $_GET) ? $_GET["callback"] : "");
 $u = "";
 $r = "";
+$auchak = (int) $auchak;
 
 // debug ausgabe
 if (!function_exists("pp")) {
@@ -137,10 +140,10 @@ function put_cache($u, $r) {
 
 
 // hält die Verbindung mit nuliga, kann Seiten abrufen, und POSTs absenden
-// heute würde ich eher requests for php nehmen https://requests.ryanmccue.info/
-require_once("Snoopy.class.php");
+// umgestellt auf requests for php nehmen https://requests.ryanmccue.info/
+require_once("Requests-1.7.0/library/Requests.php");
+Requests::register_autoloader();
 class NuLiga {
-	var $snoopy;
 	var $cookies;
 	function init($state) {
 		if ($state) $this->cookies = unserialize(base64_decode($state));
@@ -155,35 +158,39 @@ class NuLiga {
 	}
 	function get($url, $referer = "") {
 		$DEB = 0;
-		$s = new Snoopy();
-		$s->agent = "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; .NET CLR 1.1.4322)";
-		$s->rawheaders = Array("Connection" => "close", "Accept-Language" => "de");
-		if ($referer) $s->rawheaders['Referer'] = $referer;
-		$s->maxredirs = 0;
-		$s->cookies = $this->cookies;
+		// url muss absolut sein
+		if (!$url) throw new Exception("mit leerer URL aufgerufen");
+		if (!preg_match(';^http;i', $url)) throw new Exception("url nicht absolut: $url");
+		if (!$this->cookies) $this->cookies = array();
+		$o = array(
+			//"transport" => "Requests_Transport_cURL",
+			//"cookies" => $this->cookies,
+			//"proxy" => "localhost:8888",
+			"verify" => false, // true wäre besser, aber uns ist es egal mit welchem Server wir reden
+			"timeout" => 2*60,
+			"follow_redirects" => "false", 
+			"useragent" => "Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 5.1; Trident/4.0)"
+			);
+		if (0) $o = array_merge($o, 
+			array("proxy" => "localhost:8888", "verify" => false));
+		$h = array(
+			"Referer" => $referer ? $referer : $url,
+			"Connection" => "close", 
+			"Accept-Language" => "de",
+		);
 		if ($DEB) {
 			$t1 = microtime(true); $t1s = date("H:i:s", (int)$t1); $t1m = $t1*1000%1000;
-			//$handle = fopen("helper.log", 'a'); fwrite($handle, "$t1s.$t1m Get $url\r\n"); fclose($handle);
+			$handle = fopen("helper.log", 'a'); fwrite($handle, "$t1s.$t1m Get $url\r\n"); fclose($handle);
 		}
-		$s->fetch($url);
-		while (preg_match("/Error 503\./", $s->results)) {
-			if ($DEB) {
-				$t1 = microtime(true); $t1s = date("H:i:s", (int)$t1); $t1m = $t1*1000%1000;
-				//$handle = fopen("helper.log", 'a'); fwrite($handle, "$t1s.$t1m 503 $url\r\n"); fclose($handle);
-			}
-			$s->fetch($url);
-		}
+		$r = Requests::get($url, $h, $o);
 		if ($DEB) {
 			$t1 = microtime(true); $t1s = date("H:i:s", (int)$t1); $t1m = $t1*1000%1000;
-			//$handle = fopen("helper.log", 'a'); fwrite($handle, "$t1s.$t1m Got $url\r\n"); fclose($handle);
+			$handle = fopen("helper.log", 'a'); fwrite($handle, "$t1s.$t1m Got $url\r\n"); fclose($handle);
 		}
-		//if (!($s->results > "")) return $s->error;
-		$s->setcookies();
-		$this->cookies = $s->cookies;
+		$this->cookies = $r->cookies;
 		$this->ref = $url;
-		$r = rutf($s->results);
-		//$r = $s->results;
-		return $r;
+		$ret = rutf($r->body);
+		return $ret;
 	}
 }
 
@@ -192,32 +199,33 @@ function rutf($s) {
 	$s = utf8_decode($s);
 	$s = str_replace('&nbsp;', ' ', $s);
 	$s = html_entity_decode($s);
-	$s = preg_replace_callback('~&#x([0-9a-f]+);~i', function() {$x = $m[0]; return "chr(hexdec($x))";}, $s);
-	$s = preg_replace_callback('~&#([0-9]+);~', function() {$x = $m[0]; return "chr($x)";}, $s);
+	$s = preg_replace_callback('~&#x([0-9a-f]+);~i', function($m) {$x = $m[0]; return "chr(hexdec($x))";}, $s);
+	$s = preg_replace_callback('~&#([0-9]+);~', function($m) {$x = $m[0]; return "chr($x)";}, $s);
 	return $s;
 }
 
 // url zu nuliga kann direkt angegenen sein
 $team = "";
 if ($url) {
-	$url = str_replace("https:", "http:", $url);
-	if (preg_match(';^http://(.*?)\.liga\.nu/.*?/nuLiga(.*?)\.woa.*?groupPage\?championship=(.*?)&group=(\d+);i', $url, $x)) {
+	$url = str_replace("http:", "https:", $url);
+	if (preg_match(';^https://(.*?)\.liga\.nu/.*?/nuLiga(.*?)\.woa.*?groupPage\?championship=(.*?)&group=(\d+);i', $url, $x)) {
 		// Tabelle für diese Gruppe
 		$verband = $x[1];
 		$sportart = $x[2];
 		$cs = urldecode($x[3]);
 		$gruppe = $x[4];
-		$url = "http://$verband.liga.nu/cgi-bin/WebObjects/nuLiga{$sportart}.woa/wa/groupPage?championship=".urlencode($cs)."&group=$gruppe";
+		$url = "https://$verband.liga.nu/cgi-bin/WebObjects/nuLiga{$sportart}.woa/wa/groupPage?championship=".urlencode($cs)."&group=$gruppe";
+		if ($auchak) $url .= "&displayTyp=gesamt&displayDetail=tableWithIgnoredTeams";
 		//ex($url);die;
-	} else if (preg_match(';^http://(.*?)\.liga\.nu/.*?/nuLiga(.*?)\.woa.*?teamPortrait\?team=(.*?)&championship=(.*?)&group=(\d+);i', $url, $x)) {
-		//http://htv.liga.nu/cgi-bin/WebObjects/nuLigaTENDE.woa/wa/teamPortrait?team=2306425&championship=TB+Mittelhessen+19&group=22
+	} else if (preg_match(';^https://(.*?)\.liga\.nu/.*?/nuLiga(.*?)\.woa.*?teamPortrait\?team=(.*?)&championship=(.*?)&group=(\d+);i', $url, $x)) {
+		//https://htv.liga.nu/cgi-bin/WebObjects/nuLigaTENDE.woa/wa/teamPortrait?team=2306425&championship=TB+Mittelhessen+19&group=22
 		// Tabelle für dieses Team (Tennis)
 		$verband = $x[1];
 		$sportart = $x[2];
 		$team = $x[3];
 		$cs = urldecode($x[4]);
 		$gruppe = $x[5];
-		$url = "http://$verband.liga.nu/cgi-bin/WebObjects/nuLiga{$sportart}.woa/wa/teamPortrait?team={$team}&championship=".urlencode($cs)."&group=$gruppe";
+		$url = "https://$verband.liga.nu/cgi-bin/WebObjects/nuLiga{$sportart}.woa/wa/teamPortrait?team={$team}&championship=".urlencode($cs)."&group=$gruppe";
 	} else {
 		//print_r("else ".$url);die;
 		$url = "";
@@ -248,13 +256,13 @@ if ($spielplanverein) {
 	}
 	$ss = $s; $ee = $e;
 	if ($s and $e) $s = "&searchTimeRangeFrom=$s&searchTimeRangeTo=$e"; else $s = "";
-	$u = "http://$verband.liga.nu/cgi-bin/WebObjects/nuLiga{$sportart}.woa/wa/clubMeetings?searchTimeRange=2&searchType=1{$s}&club={$club}&searchMeetings=Suchen";
+	$u = "https://$verband.liga.nu/cgi-bin/WebObjects/nuLiga{$sportart}.woa/wa/clubMeetings?searchTimeRange=2&searchType=1{$s}&club={$club}&searchMeetings=Suchen";
 	//die($u);
 }
 
 if ($u && ($gruppe || $club)) {
 	if ($spielplan) {
-		if (!$team) $u = "http://$verband.liga.nu/cgi-bin/WebObjects/nuLiga{$sportart}.woa/wa/groupPage?displayTyp=gesamt&displayDetail=meetings&championship=".urlencode($cs)."&group=$gruppe";
+		if (!$team) $u = "https://$verband.liga.nu/cgi-bin/WebObjects/nuLiga{$sportart}.woa/wa/groupPage?displayTyp=gesamt&displayDetail=meetings&championship=".urlencode($cs)."&group=$gruppe";
 		if ($aktuell) $u .= "&aktuell=1";
 	}
 	// von nuliga lesen
