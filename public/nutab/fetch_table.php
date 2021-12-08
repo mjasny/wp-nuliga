@@ -3,38 +3,34 @@
 Copyright 2018 Harald Herberth
 
 Licence BSD
-Darf frei verwendet werden, solange damit keine Werbung in die erzeugten Tabellen eingefügt wird
+Darf frei verwendet werden, solange damit keine Werbung in die erzeugten Tabellen eingefÃ¼gt wird
 
-Liest Tabellen und Spielpläne aus nuLiga aus, und bringt sie in einem JSON Format zurück
+Liest Tabellen und SpielplÃ¤ne aus nuLiga aus, und bringt sie in einem JSON Format zurÃ¼ck
 Zu verwenden in tabellen.js
 
 
 Parameter
-url: zeigt direkt auf eine NuLiga URL für eine aktuelle Tabelle oder Spielplan
+url: zeigt direkt auf eine NuLiga URL fÃ¼r eine aktuelle Tabelle oder Spielplan
 spielplan: true sagt: spielplan laden, nicht aktuell
 spielplanverein: true sagt: gesamt-spielplan laden, nicht aktuell
 	alle: alle Spiele anzeigen
 	von, bis: nur Spiele in diesem Zeitraum anzeigen
-aktuell gibt es in nuLiga nicht mehr, ist aus ISS3 übriggeblieben, entfernen
+aktuell gibt es in nuLiga nicht mehr, ist aus ISS3 Ã¼briggeblieben, entfernen
 cty: content type (falls der Aufrufer was ganz spezielles braucht)
 jh: JSON header content
 auchak: in die Tabellen ist auch AK Mannschaften normal drin, und nicht am Ende mit AK
 
-Aufruf erfolgt über JSONP
-
-Todo:
-Umstellen von JSONP auf XHR (dann aber mit CORS, damit andere Vereine das auch nutzen koennen)
-Umstellen von Badgerfish auf normals JSON (das ist auch noch aus ISS3 Zeiten da)
-Verwenden des eingebauten JSON
+Aufruf erfolgt Ã¼ber JSONP oder XHR und CORS
 
 */
 error_reporting(E_ALL & ~(E_NOTICE|E_WARNING|E_DEPRECATED));
-error_reporting(E_ALL & ~(E_NOTICE|E_DEPRECATED));
+//error_reporting(E_ALL & ~(E_NOTICE|E_DEPRECATED));
 @ini_set("display_errors", "1");
 
 // zum testen kann der Cache auch mal disabled werden. 
 // Man sollte aber immer mit arbeiten, weil das die Aufbauzeiten der eigenen Seiten verbessert, und die Last auf die nu Server senkt.
 define("DISABLE_CACHE", 0); 
+define("DEBUG_GET", 0); 
 
 // alle Parameter als global einlesen
 // auch dies kann man mal besser machen, wenn man will
@@ -57,7 +53,7 @@ if (1 and !ini_get('register_globals')) {
 }
 @ini_set("default_charset","ISO8859-1");
 @ini_set("date.timezone", "Europe/Berlin");
-// damit preg_match_all auch für lange strings geht
+// damit preg_match_all auch fÃ¼r lange strings geht
 @ini_set("pcre.backtrack_limit","8000000");
 
 ob_start(); // damit warnings nicht in das XML kommen
@@ -70,12 +66,18 @@ $callback = preg_replace('/[^a-zA-Z0-9$_.]/', "", array_key_exists("callback", $
 $u = "";
 $r = "";
 $auchak = (int) $auchak;
+$auchak = 0;
 
 // debug ausgabe
 if (!function_exists("pp")) {
 function pp($v) {
 	$x = htmlspecialchars(print_r($v,true)); $x = str_replace("[","<br>[",$x); echo$x . "<br><br>";
 }
+}
+$debug_message = "";
+function dd($x) {
+	global $debug_message;
+	$debug_message .= htmlentities($x) . " ";
 }
 
 function ex($m) {
@@ -91,7 +93,7 @@ function write_log($f) {
 
 /*
  * Anfragen mit dem gleichen Inhalt werden gecached
- * damit nicht jeder Seiten-Refresh zu einem Roundtrip bis zum nuLiga Server führt
+ * damit nicht jeder Seiten-Refresh zu einem Roundtrip bis zum nuLiga Server fÃ¼hrt
  */
 function clear_cache() {
 	$ff = "cache/clear_cache.txt";
@@ -120,8 +122,8 @@ function get_cache($u) {
 	$ret = clear_cache();
 	if ($ret < 0) return $ret;
 	$r = "";
-	preg_match("§.*\?(.*)§is", $u, $u); $u = $u[1];
-	$u = "cache/" . strtolower(preg_replace("§[^A-Za-z0-9]§", "_", $u)) . ".txt";
+	preg_match("/.*\?(.*)/is", $u, $u); $u = $u[1];
+	$u = "cache/" . strtolower(preg_replace("/[^A-Za-z0-9]/", "_", $u)) . ".txt";
 	if (file_exists($u) and time() < filemtime($u) + 10*60) {
 		$r = file_get_contents($u);
 	}
@@ -130,8 +132,8 @@ function get_cache($u) {
 
 function put_cache($u, $r) {
 	if (DISABLE_CACHE) return;
-	preg_match("§.*\?(.*)§is", $u, $u); $u = $u[1];
-	$u = "cache/" . strtolower(preg_replace("§[^A-Za-z0-9]§", "_", $u)) . ".txt";
+	preg_match("/.*\?(.*)/is", $u, $u); $u = $u[1];
+	$u = "cache/" . strtolower(preg_replace("/[^A-Za-z0-9]/", "_", $u)) . ".txt";
 	$fp = fopen($u, "wb"); 
 	if ($fp === false) return;
 	fwrite($fp, $r); fclose($fp);
@@ -139,7 +141,7 @@ function put_cache($u, $r) {
 }
 
 
-// hält die Verbindung mit nuliga, kann Seiten abrufen, und POSTs absenden
+// hÃ¤lt die Verbindung mit nuliga, kann Seiten abrufen, und POSTs absenden
 // umgestellt auf requests for php nehmen https://requests.ryanmccue.info/
 require_once("Requests-1.7.0/library/Requests.php");
 Requests::register_autoloader();
@@ -157,7 +159,7 @@ class NuLiga {
 		die("todo");
 	}
 	function get($url, $referer = "") {
-		$DEB = 0;
+		$DEB = DEBUG_GET;
 		// url muss absolut sein
 		if (!$url) throw new Exception("mit leerer URL aufgerufen");
 		if (!preg_match(';^http;i', $url)) throw new Exception("url nicht absolut: $url");
@@ -166,7 +168,7 @@ class NuLiga {
 			//"transport" => "Requests_Transport_cURL",
 			//"cookies" => $this->cookies,
 			//"proxy" => "localhost:8888",
-			"verify" => false, // true wäre besser, aber uns ist es egal mit welchem Server wir reden
+			"verify" => false, // true wÃ¤re besser, aber uns ist es egal mit welchem Server wir reden
 			"timeout" => 2*60,
 			"follow_redirects" => "false", 
 			"useragent" => "Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 5.1; Trident/4.0)"
@@ -183,13 +185,14 @@ class NuLiga {
 			$handle = fopen("helper.log", 'a'); fwrite($handle, "$t1s.$t1m Get $url\r\n"); fclose($handle);
 		}
 		$r = Requests::get($url, $h, $o);
-		if ($DEB) {
-			$t1 = microtime(true); $t1s = date("H:i:s", (int)$t1); $t1m = $t1*1000%1000;
-			$handle = fopen("helper.log", 'a'); fwrite($handle, "$t1s.$t1m Got $url\r\n"); fclose($handle);
-		}
 		$this->cookies = $r->cookies;
 		$this->ref = $url;
 		$ret = rutf($r->body);
+		if ($DEB) {
+			$t1 = microtime(true); $t1s = date("H:i:s", (int)$t1); $t1m = $t1*1000%1000;
+			$handle = fopen("helper.log", 'a'); fwrite($handle, "$t1s.$t1m Got $url\r\n"); fclose($handle);
+			$handle = fopen("helper.log", 'a'); fwrite($handle, "$ret\r\n"); fclose($handle);
+		}
 		return $ret;
 	}
 }
@@ -208,24 +211,28 @@ function rutf($s) {
 $team = "";
 if ($url) {
 	$url = str_replace("http:", "https:", $url);
-	if (preg_match(';^https://(.*?)\.liga\.nu/.*?/nuLiga(.*?)\.woa.*?groupPage\?championship=(.*?)&group=(\d+);i', $url, $x)) {
-		// Tabelle für diese Gruppe
+	if (preg_match(';^https://(.*?)\.liga\.nu/.*?/nuLiga(.*?)\.woa.*?groupPage\?(.*);i', $url, $x)) {
+		// Tabelle/Spielplan fÃ¼r dieses Gruppe
 		$verband = $x[1];
 		$sportart = $x[2];
-		$cs = urldecode($x[3]);
-		$gruppe = $x[4];
-		$url = "https://$verband.liga.nu/cgi-bin/WebObjects/nuLiga{$sportart}.woa/wa/groupPage?championship=".urlencode($cs)."&group=$gruppe";
+		$qs = $x[3]."&";
+		if (preg_match(';championship=(.*?)&;i', $qs, $x)) $cs = urldecode($x[1]);
+		if (preg_match(';group=(.*?)&;i', $qs, $x)) $gruppe = "&group=".$x[1];
+		$url = "https://$verband.liga.nu/cgi-bin/WebObjects/nuLiga{$sportart}.woa/wa/groupPage?championship=".urlencode($cs)."$gruppe";
 		if ($auchak) $url .= "&displayTyp=gesamt&displayDetail=tableWithIgnoredTeams";
 		//ex($url);die;
-	} else if (preg_match(';^https://(.*?)\.liga\.nu/.*?/nuLiga(.*?)\.woa.*?teamPortrait\?team=(.*?)&championship=(.*?)&group=(\d+);i', $url, $x)) {
-		//https://htv.liga.nu/cgi-bin/WebObjects/nuLigaTENDE.woa/wa/teamPortrait?team=2306425&championship=TB+Mittelhessen+19&group=22
-		// Tabelle für dieses Team (Tennis)
+	} else if (preg_match(';^https://(.*?)\.liga\.nu/.*?/nuLiga(.*?)\.woa.*?teamPortrait\?(.*);i', $url, $x)) {
+		// Tabelle/Spielplan fÃ¼r dieses Team
 		$verband = $x[1];
 		$sportart = $x[2];
-		$team = $x[3];
-		$cs = urldecode($x[4]);
-		$gruppe = $x[5];
-		$url = "https://$verband.liga.nu/cgi-bin/WebObjects/nuLiga{$sportart}.woa/wa/teamPortrait?team={$team}&championship=".urlencode($cs)."&group=$gruppe";
+		$qs = $x[3]."&";
+		if (preg_match(';team=(.*?)&;i', $qs, $x)) $team = "team=".$x[1];
+		if (preg_match(';teamtable=(.*?)&;i', $qs, $x)) $team = "teamtable=".$x[1];
+		if (preg_match(';championship=(.*?)&;i', $qs, $x)) $cs = urldecode($x[1]);
+		if (preg_match(';group=(.*?)&;i', $qs, $x)) $gruppe = "&group=".$x[1];
+		$url = "https://$verband.liga.nu/cgi-bin/WebObjects/nuLiga{$sportart}.woa/wa/teamPortrait?{$team}&championship=".urlencode($cs)."$gruppe";
+		$nurteam = 1;
+		if (!$spielplan) $error = "Tabelle geht nicht mit URL auf Team";
 	} else {
 		//print_r("else ".$url);die;
 		$url = "";
@@ -233,6 +240,7 @@ if ($url) {
 	$u = $url;
 	$spielplanverein = 0;
 }
+
 
 if (!$verband) $verband = "bhv-handball";
 if (!$sportart) $sportart = "HBDE";
@@ -259,12 +267,14 @@ if ($spielplanverein) {
 	$u = "https://$verband.liga.nu/cgi-bin/WebObjects/nuLiga{$sportart}.woa/wa/clubMeetings?searchTimeRange=2&searchType=1{$s}&club={$club}&searchMeetings=Suchen";
 	//die($u);
 }
+else $club = "";
 
-if ($u && ($gruppe || $club)) {
+if ($u && ($gruppe || $club || $nurteam)) {
 	if ($spielplan) {
-		if (!$team) $u = "https://$verband.liga.nu/cgi-bin/WebObjects/nuLiga{$sportart}.woa/wa/groupPage?displayTyp=gesamt&displayDetail=meetings&championship=".urlencode($cs)."&group=$gruppe";
+		if (!$team) $u = "https://$verband.liga.nu/cgi-bin/WebObjects/nuLiga{$sportart}.woa/wa/groupPage?displayTyp=gesamt&displayDetail=meetings&championship=".urlencode($cs)."$gruppe";
 		if ($aktuell) $u .= "&aktuell=1";
 	}
+	//dd($u);
 	// von nuliga lesen
 	$r = get_cache($u);
 	if (is_int($r) && $r < 0) {
@@ -293,7 +303,7 @@ if ($u && ($gruppe || $club)) {
 	}
 
 	if ($spielplan and ($von or $bis)) {
-		// von und bis als Datum zurück, in JS filtern wir dann
+		// von und bis als Datum zurÃ¼ck, in JS filtern wir dann
 		$s = $e = "";
 		if (preg_match(";^\d\d\.\d\d\.\d\d\d\d$;is", $von)) 
 			$s = substr($von,6,4).".".substr($von,3,2).".".substr($von,0,2);
@@ -323,39 +333,39 @@ if ($ob) {
 	$r = "<error>Serverfehler in fetch_table.php $ob</error>";
 }
 
-if (!$r and $spielplanverein) $r = "<error>Keine Spiele im Zeitraum gefunden ($ss-$ee)</error>";
-else if (!$r) $r = "<error>Konnte Tabelle bei NuLiga nicht finden</error>";
-if (!$u) $r = "<error>Keine URL angegeben</error>";
+if ($error) $r = "<error>$error</error>";
+else if (!$r and $spielplanverein) $r = "<error>Keine Spiele im Zeitraum gefunden ($ss-$ee)</error>";
+else if (!$r) $r = "<error>Konnte Tabelle/Spielplan bei NuLiga nicht finden</error>";
+if (!$u) $r = "<error>Keine gÃ¼ltige URL angegeben</error>";
 
-// nach JSON Konvertieren und zurückliefern
-error_reporting(E_ALL & ~(E_NOTICE|E_WARNING));
+// nach JSON Konvertieren und zurÃ¼ckliefern
+//error_reporting(E_ALL & ~(E_NOTICE|E_WARNING));
 if ($jn) {
 	try {
-	$doc = new SimpleXMLElement($r);
-	$r = json_encode($doc);
+	$r = new SimpleXMLElement($r);
+	if ($debug_message) $r->addChild("debug", $debug_message);
+	$r = json_encode($r);
 	// empty objects to empty strings {} => ""
 	$r = str_replace("{}", '""', $r);
 	} catch (Exception $e) {
-		$r = "";
+		$r = '{"error": "XML Parser Exception"}';
 	}
 } else {
-	require_once("BadgerFish.php");
-	$f = new BadgerFish;
-	$doc = new DOMDocument();
 	try {
-	$doc->loadXML($r);
-	$r = $f->encode($doc);
+	$r = "<wrapper>$r</wrapper>"; // topmost node geht verloren, fÃ¼r $jn pfad Ã¤ndern wir das nicht, wegen kompatibel
+	$r = new SimpleXMLElement($r);
+	if ($debug_message) $r->addChild("debug", $debug_message);
+	$r = json_encode($r);
+	// empty objects to empty strings {} => ""
+	$r = str_replace("{}", '""', $r);
 	} catch (Exception $e) {
-		$r = "";
+		$r = '{"error": "XML Parser Exception"}';
 	}
 }
 //print_r($r); die;
 
 if (!$r or $r == "[]") {
-	if ($jn)
 	$r = '{"error": "Keine gueltigen Daten unter dieser Adresse"}';
-	else
-	$r = '{"error": {"$":"Keine gueltigen Daten unter dieser Adresse"}}';
 	//@unlink("cache/nu_state.txt");
 }
 // set content type

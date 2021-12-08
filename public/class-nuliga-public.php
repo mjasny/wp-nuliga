@@ -98,11 +98,10 @@ class Nuliga_Public {
 
 		wp_enqueue_script( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'js/nuliga-public.js', array( 'jquery' ), $this->version, false );
 				
-        wp_enqueue_script('pw-script', plugin_dir_url( __FILE__ ) . 'js/pw-script.js');
-            wp_localize_script('pw-script', 'script_vars', array(
-                    'basis' => plugin_dir_url( __FILE__ ) . 'nutab/'
-                )
-            );
+		wp_localize_script($this->plugin_name, 'script_vars', array(
+				'basis' => plugin_dir_url( __FILE__ ) . 'nutab/'
+			)
+		);
 
 	}
 

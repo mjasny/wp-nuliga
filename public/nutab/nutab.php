@@ -2,11 +2,11 @@
 /*
 Copyright (C) 2004 Harald Herberth
 Licence BSD
-Darf frei verwendet werden, solange damit keine Werbung in die erzeugten Tabellen eingefügt wird
+Darf frei verwendet werden, solange damit keine Werbung in die erzeugten Tabellen eingefÃ¼gt wird
  */
 /*
 * liest eine nuliga tabelle und bietet diese in verschiedenen Formaten an
-* - mal als XML für fetch_table
+* - mal als XML fÃ¼r fetch_table
 *
 * Ist so komisch, weil stammt noch aus einer Zeit vor nuLiga, wie wir noch ISS3 und sport4 verwendet haben
 * deshalb auch XML mit diesen Feldnamen
@@ -23,7 +23,7 @@ function set_base($u) {
 	$this->base = $u;
 }
 function init($s) {
-	// hier haben wir mehrere <table> drin, eine für die Tabelle, und für Spielplan nachher
+	// hier haben wir mehrere <table> drin, eine fÃ¼r die Tabelle, und fÃ¼r Spielplan nachher
 	$a = array();
 	if(1 > preg_match_all(';<table.*</table;ismU', $s, $x)) return;
 	$x = $x[0];
@@ -46,6 +46,7 @@ function init($s) {
 	else $tennis = 0; 
 	//echo "<pre>" . htmlentities(print_r($tab,true));die;
 	array_shift($rows);
+	//pp($rows);die;
 	$all_empty = array_fill(0,20,"");
 	foreach($rows as $row) {
 		if (1 > preg_match_all(';<td.*</td;ismU', $row, $x)) return;
@@ -71,7 +72,7 @@ function init($s) {
 		$doppel = explode(":", $doppel);
 		$gesamt = explode(":", $gesamt);
 		if (count($x) <= 5) {
-			$platz = 255; // Ex, also zurückgezogen. 254 wäre AK
+			$platz = 255; // Ex, also zurÃ¼ckgezogen. 254 wÃ¤re AK
 			if (preg_match(';Konkurrenz;', $row)) $platz = 254; 
 			$o = array(
 				"Platz" => $platz, 
@@ -201,17 +202,22 @@ function init($s) {
 	if (!$sn) return;
 	if (1 > preg_match_all(';<tr.*</tr;ismU', $sn, $x)) return;
 	$rows = $x[0];
-	if (preg_match(';Halle.*Nr\..*Heim;ismU', $rows[0])) $keineSpNummer = 0; else $keineSpNummer = 1;
-	if (preg_match(';Matchpunkte;ismU', $rows[0])) $tennis = 1; else $tennis = 0;
+	if (preg_match(';Halle.*Nr\..*>Heim;ismU', $rows[0])) $keineSpNummer = 0; else $keineSpNummer = 1;
+	if (preg_match(';Matchpunkte.*SÃ¤tze;ismU', $rows[0])) $tennis = 1; 
+	else if (preg_match(';Matchpunkte;ismU', $rows[0])) $tennis = 2; 
+	else $tennis = 0;
+	if ($tennis) {
+		if (preg_match(';Nr\..*>Heim;ismU', $rows[0])) $keineSpNummer = 0; else $keineSpNummer = 1;
+	}
 	array_shift($rows);
 	$datum = date("d.m.Y");
 	foreach($rows as $row) {
 		// tag, datum, zeit, halle, [Nr,] Liga, Heim, Gast, sr/tore, sbb, genehmigt
 		//  0     1      2      3      4   5      6     7     8       9
 		// bei tennis
-		// tag, datum-zeit, , Liga, Heim, Gast, Matchpunkte, Sätze, Spiele, Bericht
-		// tag, datum, zeit, , , Liga, Heim, Gast, Matchpunkte, Sätze, Spiele, Bericht
-		//  0,    1    2    3 4    5    6       7          8       9       10    11
+		// tag, datum-zeit,, [Nr] , Liga, Heim, Gast, Matchpunkte, SÃ¤tze, Spiele, Bericht
+		// tag, datum, zeit,leer ,Nr , Liga, Heim, Gast, Matchpunkte, SÃ¤tze, Spiele, Bericht
+		//  0,    1    2     3     4    5    6       7          8       9       10    11
 		if (1 > preg_match_all(';<td.*</td;ismU', $row, $x)) return;
 		$x = $x[0];
 		// bei termin offen haben wir eine Spalte weniger, und kein Datum
@@ -221,17 +227,20 @@ function init($s) {
 			array_unshift($x, "");
 			$x[2] = "00:02";
 		}
-		// bei Tennis Zeit in extra Spalte und leere spalten einfügen
+		// bei Tennis Zeit in extra Spalte und leere spalten einfÃ¼gen
 		if ($tennis) {
+			// ist hier nie 2?
 			if (preg_match(';(\d\d\.\d\d\.\d\d\d\d) (\d\d:\d\d);ismU', $x[1], $xx)) {
-				array_splice($x, 1, 2, array($xx[1], $xx[2], "", ""));
+				array_splice($x, 1, 1, array($xx[1], $xx[2]));
 			} else
-				array_splice($x, 1, 2, array($datum, $zeit, "", ""));
+				array_splice($x, 1, 1, array($datum, $zeit));
+			if ($keineSpNummer) array_splice($x, 4, 0, array("")); // Spielnummer leer
 		}
-		// falls keine Spielnummer da ist, eine 0 einfügen
+		// falls keine Spielnummer da ist, eine 0 einfÃ¼gen
 		if (!$tennis && $keineSpNummer) {
 			array_splice($x, 4, 0, array("0"));
 		}
+		//pp($x);die;
 		//Hallenbezeichnung aus dem span Tag herausholen
 		// wird dann als Halle_Name_kurz bereitgestellt
 		$hal = $x[3];
@@ -252,6 +261,7 @@ function init($s) {
 			if ($tennis) $x[$i] = str_replace('[Routenplan]', '', $x[$i]);
 			$x[$i] = trim($x[$i]);
 		}
+		if ($tennis) $hal = $x[3]; // wird leer sein
 		if ($x[0]) $tag = $x[0];
 		if ($x[1]) $datum = $x[1];
 		if ($x[2]) $zeit = substr(trim($x[2]),0,5);
@@ -383,7 +393,7 @@ function init($s) {
 			$tab = $s;
 		}
 		if (preg_match(';>Heimmannschaft;ismU', $s)) {
-			$sn = $s;
+			$sn .= $s;
 		}
 	}
 	if (!$sn) return;
@@ -393,9 +403,12 @@ function init($s) {
 		array_shift($rows); // bei Pokal wird Zeile mit Finale entfernt
 	}
 	if (preg_match(';Halle.*Nr\..*>Heim;ismU', $rows[0])) $keineSpNummer = 0; else $keineSpNummer = 1;
-	if (preg_match(';Matchpunkte.*Sätze;ismU', $rows[0])) $tennis = 1; 
+	if (preg_match(';Matchpunkte.*SÃ¤tze;ismU', $rows[0])) $tennis = 1; 
 	else if (preg_match(';Matchpunkte;ismU', $rows[0])) $tennis = 2; 
 	else $tennis = 0;
+	if ($tennis) {
+		if (preg_match(';Nr\..*>Heim;ismU', $rows[0])) $keineSpNummer = 0; else $keineSpNummer = 1;
+	}
 	$spielort = 0; if ($tennis && preg_match(';Spielort;ismU', $rows[0])) $spielort = 1;
 	$platz = 0; if ($tennis && preg_match(';Platz;ismU', $rows[0])) $platz = 1;
 	array_shift($rows);
@@ -409,14 +422,15 @@ function init($s) {
 		// tag, datum, zeit, Halle, Heim, Gast, Spiele(Wertung), Bericht
 		//
 		// bei tennis groupPage
-		// 1:tag, datum-zeit, , [ort,] Heim, Gast, Matchpunkte, Sätze, Spiele, Bericht
+		// 1:tag, datum-zeit, , [ort,] Heim, Gast, Matchpunkte, SÃ¤tze, Spiele, Bericht
 		//                              5     6      7           8      9       10
 		//
 		// bei tennis spieltermine TeamPortrait Seite (aufbau seite, wir spleissen auf gleiches Format auf)
-		// 1:tag, datum-zeit, , [Ort,] Heim, Gast, Matchpunkte, Sätze, Spiele, Bericht
+		// 1:tag, datum-zeit, , [Ort,] Heim, Gast, Matchpunkte, SÃ¤tze, Spiele, Bericht
 		// 2:tag, datum-zeit, [Ort,]   Heim, Gast, Matchpunkte, Bericht
 		//                             5     6      7           8  
 		// also be Tennis kann der Spielort noch vor dem Heim stehen, dann nehmen wir ihn als Halle
+		// Datum, Uhrzeit 	Spielort 	Platz 	Nr. 	Heimmannschaft 	Gastmannschaft 	Matchpunkte 	Spielbericht
 		//
 		if (2 > preg_match_all(';<td.*</td;ismU', $row, $x)) continue; 
 		$x = $x[0];
@@ -427,7 +441,7 @@ function init($s) {
 			array_unshift($x, "");
 			$x[2] = "00:02";
 		}
-		// bei Tennis Zeit in extra Spalte und leere spalten einfügen
+		// bei Tennis Zeit in extra Spalte und leere spalten einfÃ¼gen
 		if ($tennis) {
 			if ($platz == 1) 
 				array_splice($x, 3, 1);
@@ -440,12 +454,12 @@ function init($s) {
 			} else {
 				array_splice($x, 1, 1, array($datum, $zeit));
 			}
-			array_splice($x, 4, 0, array("")); // Spielnummer leer
+			if ($keineSpNummer) array_splice($x, 4, 0, array("")); // Spielnummer leer
 			if ($tennis == 2) {
 				array_splice($x, 8, 0, array("", ""));
 			}
 		}
-		// falls keine Spielnummer da ist, eine 0 einfügen
+		// falls keine Spielnummer da ist, eine 0 einfÃ¼gen
 		if (!$tennis && $keineSpNummer) {
 			array_splice($x, 4, 0, array("0"));
 		}
@@ -472,6 +486,7 @@ function init($s) {
 			$x[$i] = str_replace('&nbsp;', ' ', $x[$i]);
 			$x[$i] = trim($x[$i]);
 		}
+		if ($tennis) $hal = $x[3];
 		if ($x[0]) $tag = $x[0];
 		if ($x[1]) $datum = $x[1];
 		$zeit = "00:00";

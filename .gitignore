@@ -1,3 +1,4 @@
 .kdev4/
 *.zip
 public/nutab/cache/*.txt
+*.sh

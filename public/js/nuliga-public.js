@@ -1,37 +1,3 @@
-(function( $ ) {
-	'use strict';
-
-	/**
-	 * All of the code for your public-facing JavaScript source
-	 * should reside in this file.
-	 *
-	 * Note: It has been assumed you will write jQuery code here, so the
-	 * $ function reference has been prepared for usage within the scope
-	 * of this function.
-	 *
-	 * This enables you to define handlers, for when the DOM is ready:
-	 *
-	 * $(function() {
-	 *
-	 * });
-	 *
-	 * When the window is loaded:
-	 *
-	 * $( window ).load(function() {
-	 *
-	 * });
-	 *
-	 * ...and/or other possibilities.
-	 *
-	 * Ideally, it is not considered best practise to attach more than a
-	 * single DOM-ready or window-load handler for a particular page.
-	 * Although scripts in the WordPress core, Plugins and Themes may be
-	 * practising this, we should strive to set a better example in our own work.
-	 */
-
-})( jQuery );
-
-
 /*
 Copyright (C) 2008 Harald Herberth
 Licence BSD
@@ -61,7 +27,7 @@ Beispiele
 <div class="srsPlanVerein" srsclub="..." srsAlle=1></div>
 
 */
-jQuery(document).ready(function($){
+jQuery(document).ready(function ($) {
 	if (window.srsLoaded) return;
 	window.srsLoaded = true;
 	$.ajaxSettings.cache = false;
@@ -73,28 +39,28 @@ jQuery(document).ready(function($){
 	// und immer mit oder ohne www. davor, abhaengig davon, ob ihr eure Seite mit oder ohne aufruft. Also nur das http(s):: davor weglassen
 	var server = "//SERVER/pfad/"; // OHNE http: vorne, also nicht http://EuerServer... sondern nur //EuerServer...
 	var options = setOptions(server);
-	//server = options.server;
+	// server = options.server;
 	// da so viele Probleme mit der Server Konfiguration haben, testen wir das gleich
 	if (server && server.indexOf("//") !== 0 || server === "//") {
 		alert("Bitte var server='..' richtig konfigurieren. Ist derzeit: " + server);
 		return;
 	}
-	var basis = script_vars.basis; //!server || window.location.href.match(/localhost/) || server.match(/SERVER/) ? "" : window.location.protocol + server;
+	var basis = script_vars.basis;
 	var links = $("div.srsLinks").empty();
 	var anchors = [];
 	// Eine einzelne Tabelle aus den Daten erstellen
-	var create_table = function(header, fields, data) {
+	var create_table = function (header, fields, data) {
 		var h = '<table class="srs">';
 		if (header !== '-') {
 			h += '<tr class="srs">';
-			$.each(header.split(/;/), function(i,val) {
+			$.each(header.split(/;/), function (i, val) {
 				h += '<th class="srs">' + val + '</th>';
 			});
 			h += '</tr>';
 		}
-		$.each(data.constructor == Array ? data : [data], function(i, val) {
+		$.each(data.constructor == Array ? data : [data], function (i, val) {
 			h += '<tr class="srs">';
-			$.each(fields.split(/;/), function(j, f) {
+			$.each(fields.split(/;/), function (j, f) {
 				var i, fv, ff, fe, fev, pat, allnull, href;
 				// wird eine Zelle aus mehreren Werten zusamengebaut? (expr+expr+expr...)
 				fv = ""; allnull = true;
@@ -104,7 +70,7 @@ jQuery(document).ready(function($){
 					href = f.split(/@/);
 					f = href[0];
 					href = href[1];
-					href = (val[href] && val[href].$ ? val[href].$ : '');
+					href = (val[href] ? val[href] : '');
 					if (href) href = atob(href);
 				}
 				fe = f.split(/\+/);
@@ -115,22 +81,22 @@ jQuery(document).ready(function($){
 						fev = fe[i].substr(1);
 					else {
 						ff = fe[i].split(/\/|!|\xa7/); // xa7 = §
-						fev = (val[ff[0]] && val[ff[0]].$ ? val[ff[0]].$ : '');
+						fev = (val[ff[0]] ? val[ff[0]] : '');
 						if (fev.length > 0) allnull = false;
 						// is there a pattern match and replace in the field expression (field/pat/replace)
 						ff = fe[i].split(/\//);
 						if (ff.length == 3) {
 							pat = new RegExp(ff[1]);
-							fev = fev.replace(pat,ff[2]); 
+							fev = fev.replace(pat, ff[2]);
 						}
 						// is there a substring expression (field§start§len or sep by !)
 						ff = fe[i].split(/\xa7/);
 						if (ff.length == 3) {
-							fev = fev.substr(ff[1],ff[2]); 
+							fev = fev.substr(ff[1], ff[2]);
 						}
 						ff = fe[i].split(/!/);
 						if (ff.length == 3) {
-							fev = fev.substr(ff[1],ff[2]); 
+							fev = fev.substr(ff[1], ff[2]);
 						}
 					}
 					fv = fv + fev;
@@ -147,7 +113,7 @@ jQuery(document).ready(function($){
 		return h;
 	};
 	// eine tabelle in ein div mit formatieren
-	var show_table = function(div, data, p) {
+	var show_table = function (div, data, p) {
 		$(div).empty();
 		if (!data) return;
 		if (!p.class) p.class = "srsTable";
@@ -157,22 +123,22 @@ jQuery(document).ready(function($){
 		$(div).find("table.srs").addClass(p.class);
 		var t = $(div).find("tr.srs");
 		$.each(p.classCol.split(/;/), function (i, val) {
-			t.find("td.srs:eq("+i+")").addClass(val).end()
-			 .find("th.srs:eq("+i+")").addClass(val).end();
+			t.find("td.srs:eq(" + i + ")").addClass(val).end()
+				.find("th.srs:eq(" + i + ")").addClass(val).end();
 		});
 		// eigenen Verein einfärben
-		if (p.verein) t.filter(":contains('"+p.verein+"')").addClass("srsHome");
+		if (p.verein) t.filter(":contains('" + p.verein + "')").addClass("srsHome");
 	};
 	// alle tabellen (spiele und tabelle) fuer eine klasse
-	var show_tables = function(div, data, p) {
+	var show_tables = function (div, data, p) {
 		$(div).find(".srsLaden").remove();
 		if (!data) return;
-		if (data.error && data.error.$) {$(div).append(data.error.$); return;}
+		if (data.error) { $(div).append(data.error); return; }
 		if (+p.minitab) p.auchspiele = "";
 		var d; // temporary div to hold one table
 		var aa;
 		var tennis;
-		tennis = +(data.Aktueller_Spielplan.Tennis ? data.Aktueller_Spielplan.Tennis.$ : 0);
+		tennis = +(data.Aktueller_Spielplan.Tennis ? data.Aktueller_Spielplan.Tennis : 0);
 		// show vorherige_Spiele
 		if (p.auchspiele > 0 && data.Aktueller_Spielplan && data.Aktueller_Spielplan.vorherige_Spiele) {
 			p.header = plan_format[tennis == 1 ? 4 : tennis == 2 ? 6 : 0].header;
@@ -209,10 +175,10 @@ jQuery(document).ready(function($){
 			// welche Spalte hat denn den Platz, nicht das wir zuviel löschen
 			var sp = $.inArray("Platz", p.fields.split(/;/));
 			if (+p.keineak > 0) {
-				$(d).find("tr.srs").find("td.srs:eq("+sp+"):contains('254')").parents("tr.srs").remove();
+				$(d).find("tr.srs").find("td.srs:eq(" + sp + "):contains('254')").parents("tr.srs").remove();
 			}
 			if (+p.keineex > 0) {
-				$(d).find("tr.srs").find("td.srs:eq("+sp+"):contains('255')").parents("tr.srs").remove();
+				$(d).find("tr.srs").find("td.srs:eq(" + sp + "):contains('255')").parents("tr.srs").remove();
 			}
 			$(div).append(d);
 		} else if (data.Teams) {
@@ -236,42 +202,42 @@ jQuery(document).ready(function($){
 		}
 	};
 	// alle Tabellen suchen, und anzeigen
-	var lookup_tables = function() {
+	var lookup_tables = function () {
 		var divs = $("div.srsTab");
-		divs.each(function(i) {
+		divs.each(function (i) {
 			var o = $(this);
 			var div = this;
 			var p = {};
 			var m;
 			// get all attributes srs*
 			$.each([
-				"srsURL", 
-				"srsTitle","srsVerein","srsMinitab","srsAuchSpiele","srsKeineAK", "srsAuchAK", "srsKeineEx", 
+				"srsURL",
+				"srsTitle", "srsVerein", "srsMinitab", "srsAuchSpiele", "srsKeineAK", "srsAuchAK", "srsKeineEx",
 				"srsTabellenSpalten", "srsTabellenKopf", "srsTabellenFormat", "srsClass"
-				], function(i, val) {
+			], function (i, val) {
 				var m = val.match(/^srs(.*)/);
-				if (m && o.attr(val)) {p[m[1].toLowerCase()] = o.attr(val); }
+				if (m && o.attr(val)) { p[m[1].toLowerCase()] = o.attr(val); }
 				val = "data-" + val;
-				if (m && o.attr(val)) {p[m[1].toLowerCase()] = o.attr(val); }
+				if (m && o.attr(val)) { p[m[1].toLowerCase()] = o.attr(val); }
 			});
 			if (+p.auchak > 0 && p.keineak !== undefined) p.keineak = 0;
-			if (p.title) m = "<p>"+p.title+"</p>"; else m = "";
+			if (p.title) m = "<p>" + p.title + "</p>"; else m = "";
 			if (divs.length > 1 && links.length > 0) {
-				m = "<a name=\"srs_a_"+i+"\"></a>" + m;
-				anchors.push('<a href="#srs_a_'+i+'">'+(p.title?p.title:p.klasse?p.klasse:"Tab "+i)+'</a>');
+				m = "<a name=\"srs_a_" + i + "\"></a>" + m;
+				anchors.push('<a href="#srs_a_' + i + '">' + (p.title ? p.title : p.klasse ? p.klasse : "Tab " + i) + '</a>');
 			}
-			o.html(m+"<p class=\"srsLaden\">" + (window.srsTabMsg || "Tabelle " + (p.klasse || p.liganummer || "")+ " wird geladen") + "</p>");
+			o.html(m + "<p class=\"srsLaden\">" + (window.srsTabMsg || "Tabelle " + (p.klasse || p.liganummer || "") + " wird geladen") + "</p>");
 			$.ajax({
-			    type: "GET",
-			    url: basis + "fetch_table.php",
-			    data : p, 
-			    dataType: options.ajaxDataType,
-			    success: function(data, textstatus) {
-				show_tables(div, data, p);
-			    },
-			    error: function(XMLHttpRequest, textStatus, errorThrown) {
-				o.html("Error in GET srsTab: " + textStatus);
-			    }
+				type: "GET",
+				url: basis + "fetch_table.php",
+				data: p,
+				dataType: options.ajaxDataType,
+				success: function (data, textstatus) {
+					show_tables(div, data, p);
+				},
+				error: function (XMLHttpRequest, textStatus, errorThrown) {
+					o.html("Error in GET srsTab: " + textStatus);
+				}
 			});
 		});
 		// Links setzen, wenn alle Ligen (ohne daten) im DOM sind
@@ -281,91 +247,91 @@ jQuery(document).ready(function($){
 	lookup_tables();
 	// haben wir Spielpläne für eine bestimmte Klasse und Verein
 	// diese ausgeben als datum, zeit, halle, heim, gast
-	$("div.srsPlan").each(function() {
+	$("div.srsPlan").each(function () {
 		var o = $(this);
 		var p = {};
 		var m;
 		// get all attributes srs*
 		$.each([
-			"srsURL", 
-			"srsTitle","srsVerein","srsAlle","srsHeimGast",
-			"srsVon", "srsBis","srsAktuell","srsNeueVorne",
+			"srsURL",
+			"srsTitle", "srsVerein", "srsAlle", "srsHeimGast",
+			"srsVon", "srsBis", "srsAktuell", "srsNeueVorne",
 			"srsNurHalle", "srsOhneHalle", "srsMaxZeilen", "srsClass",
 			"srsTabellenSpalten", "srsTabellenKopf", "srsTabellenFormat"
-			], function(i, val) {
+		], function (i, val) {
 			var m = val.match(/^srs(.*)/);
-			if (m && o.attr(val)) {p[m[1].toLowerCase()] = o.attr(val); }
+			if (m && o.attr(val)) { p[m[1].toLowerCase()] = o.attr(val); }
 			val = "data-" + val;
-			if (m && o.attr(val)) {p[m[1].toLowerCase()] = o.attr(val); }
+			if (m && o.attr(val)) { p[m[1].toLowerCase()] = o.attr(val); }
 		});
 		if (!p.verein && !+p.alle && !+p.aktuell) {
 			p.alle = "1";
 			//o.html("Keinen Verein angegeben");
 			//return;
 		}
-		if (p.title) m = "<p>"+p.title+"</p>"; else m = "";
-		o.html(m+"<p class=\"srsLaden\">" + (window.srsPlanMsg || "Spielplan " + (p.klasse || p.liganummer || "") + " wird geladen") + "</p>");
+		if (p.title) m = "<p>" + p.title + "</p>"; else m = "";
+		o.html(m + "<p class=\"srsLaden\">" + (window.srsPlanMsg || "Spielplan " + (p.klasse || p.liganummer || "") + " wird geladen") + "</p>");
 		p.spielplan = 1;
 		$.ajax({
-		    type: "GET",
-		    url: basis + "fetch_table.php",
-		    data : p, 
-		    dataType: options.ajaxDataType,
-		    success: function(data, textstatus) {
-			show_plan(o.get(), data, p);
-		    },
-		    error: function(XMLHttpRequest, textStatus, errorThrown) {
-			o.html("Error in GET srsPlan: " + textStatus);
-		    }
+			type: "GET",
+			url: basis + "fetch_table.php",
+			data: p,
+			dataType: options.ajaxDataType,
+			success: function (data, textstatus) {
+				show_plan(o.get(), data, p);
+			},
+			error: function (XMLHttpRequest, textStatus, errorThrown) {
+				o.html("Error in GET srsPlan: " + textStatus);
+			}
 		});
 	});
 	// Ausgabeformat fuer den Plan
 	var plan_format = [
 		{ // alles fuer plan
-		"header": "Datum;Zeit;Halle;Heim;Gast;Ergebnis",
-		"fields": "Spieldatum/^..(..).(..).(..).*/$3.$2.$1;Spieldatum/.*T(..:..).*/$1;Halle_Kuerzel;HeimTeam_Name_kurz;GastTeam_Name_kurz;Heim+%:+Gast@sbb",
-		"classCol": "l;c;l;l;l;c"
+			"header": "Datum;Zeit;Halle;Heim;Gast;Ergebnis",
+			"fields": "Spieldatum/^..(..).(..).(..).*/$3.$2.$1;Spieldatum/.*T(..:..).*/$1;Halle_Kuerzel;HeimTeam_Name_kurz;GastTeam_Name_kurz;Heim+%:+Gast@sbb",
+			"classCol": "l;c;l;l;l;c"
 		},
 		{ // alles fuer planverein
-		"header": "Datum;Zeit;Liga;Halle;Heim;Gast;Ergebnis",
-		"fields": "Spieldatum/^..(..).(..).(..).*/$3.$2.$1;Spieldatum/.*T(..:..).*/$1;Liga_Name_kurz;Halle_Kuerzel;HeimTeam_Name_kurz;GastTeam_Name_kurz;Heim+%:+Gast@sbb",
-		"classCol": "l;c;l;l;l;l;c"
+			"header": "Datum;Zeit;Liga;Halle;Heim;Gast;Ergebnis",
+			"fields": "Spieldatum/^..(..).(..).(..).*/$3.$2.$1;Spieldatum/.*T(..:..).*/$1;Liga_Name_kurz;Halle_Kuerzel;HeimTeam_Name_kurz;GastTeam_Name_kurz;Heim+%:+Gast@sbb",
+			"classCol": "l;c;l;l;l;l;c"
 		},
 		{ // ohne halle fuer plan
-		"header": "Datum;Zeit;Heim;Gast;Ergebnis",
-		"fields": "Spieldatum/^..(..).(..).(..).*/$3.$2.$1;Spieldatum/.*T(..:..).*/$1;HeimTeam_Name_kurz;GastTeam_Name_kurz;Heim+%:+Gast@sbb",
-		"classCol": "l;c;l;l;c"
+			"header": "Datum;Zeit;Heim;Gast;Ergebnis",
+			"fields": "Spieldatum/^..(..).(..).(..).*/$3.$2.$1;Spieldatum/.*T(..:..).*/$1;HeimTeam_Name_kurz;GastTeam_Name_kurz;Heim+%:+Gast@sbb",
+			"classCol": "l;c;l;l;c"
 		},
 		{ // ohne halle fuer planverein
-		"header": "Datum;Zeit;Liga;Heim;Gast;Ergebnis",
-		"fields": "Spieldatum/^..(..).(..).(..).*/$3.$2.$1;Spieldatum/.*T(..:..).*/$1;Liga_Name_kurz;HeimTeam_Name_kurz;GastTeam_Name_kurz;Heim+%:+Gast@sbb",
-		"classCol": "l;c;l;l;l;c"
+			"header": "Datum;Zeit;Liga;Heim;Gast;Ergebnis",
+			"fields": "Spieldatum/^..(..).(..).(..).*/$3.$2.$1;Spieldatum/.*T(..:..).*/$1;Liga_Name_kurz;HeimTeam_Name_kurz;GastTeam_Name_kurz;Heim+%:+Gast@sbb",
+			"classCol": "l;c;l;l;l;c"
 		},
 		{ // alles fuer plan Tennis
-		"header": "Datum;Zeit;Heim;Gast;MatchPunkte;S\xe4tze;Spiele",
-		"fields": "Spieldatum/^..(..).(..).(..).*/$3.$2.$1;Spieldatum/.*T(..:..).*/$1;HeimTeam_Name_kurz;GastTeam_Name_kurz;Heim+%:+Gast@sbb;Saetze_Heim+%:+Saetze_Gast;Spiele_Heim+%:+Spiele_Gast",
-		"classCol": "l;c;l;l;c;c;c"
+			"header": "Datum;Zeit;Heim;Gast;MatchPunkte;S\xe4tze;Spiele",
+			"fields": "Spieldatum/^..(..).(..).(..).*/$3.$2.$1;Spieldatum/.*T(..:..).*/$1;HeimTeam_Name_kurz;GastTeam_Name_kurz;Heim+%:+Gast@sbb;Saetze_Heim+%:+Saetze_Gast;Spiele_Heim+%:+Spiele_Gast",
+			"classCol": "l;c;l;l;c;c;c"
 		},
 		{ // alles fuer planverein Tennis
-		"header": "Datum;Zeit;Liga;Heim;Gast;MatchPunkte;S\xe4tze;Spiele",
-		"fields": "Spieldatum/^..(..).(..).(..).*/$3.$2.$1;Spieldatum/.*T(..:..).*/$1;Liga_Name_kurz;HeimTeam_Name_kurz;GastTeam_Name_kurz;Heim+%:+Gast@sbb;Saetze_Heim+%:+Saetze_Gast;Spiele_Heim+%:+Spiele_Gast",
-		"classCol": "l;c;l;l;c;c;c"
+			"header": "Datum;Zeit;Liga;Heim;Gast;MatchPunkte;S\xe4tze;Spiele",
+			"fields": "Spieldatum/^..(..).(..).(..).*/$3.$2.$1;Spieldatum/.*T(..:..).*/$1;Liga_Name_kurz;HeimTeam_Name_kurz;GastTeam_Name_kurz;Heim+%:+Gast@sbb;Saetze_Heim+%:+Saetze_Gast;Spiele_Heim+%:+Spiele_Gast",
+			"classCol": "l;c;l;l;c;c;c"
 		},
 		{ // alles fuer plan Tennis Team
-		"header": "Datum;Zeit;Heim;Gast;MatchPunkte",
-		"fields": "Spieldatum/^..(..).(..).(..).*/$3.$2.$1;Spieldatum/.*T(..:..).*/$1;HeimTeam_Name_kurz;GastTeam_Name_kurz;Heim+%:+Gast@sbb",
-		"classCol": "l;c;l;l;c"
+			"header": "Datum;Zeit;Heim;Gast;MatchPunkte",
+			"fields": "Spieldatum/^..(..).(..).(..).*/$3.$2.$1;Spieldatum/.*T(..:..).*/$1;HeimTeam_Name_kurz;GastTeam_Name_kurz;Heim+%:+Gast@sbb",
+			"classCol": "l;c;l;l;c"
 		},
-		];
+	];
 	// einen Plan als table ausgeben
-	var show_plan = function(div, data, p) {
+	var show_plan = function (div, data, p) {
 		var o = $(div);
 		var d, dd, tennis;
 		o.find(".srsLaden").remove();
-		if (data && data.error && data.error.$) {$(div).append(data.error.$); return;}
+		if (data && data.error) { $(div).append(data.error); return; }
 		if (data && data.Spielplan && data.Spielplan.Spielplan) {
-			tennis = +(data.Spielplan.Tennis ? data.Spielplan.Tennis.$ : 0);
-			d = 0; 
+			tennis = +(data.Spielplan.Tennis ? data.Spielplan.Tennis : 0);
+			d = 0;
 			if (tennis == 1) d = 4;
 			if (p.spielplanverein) d += 1;
 			if (+p.ohnehalle && !tennis) d += 2;
@@ -374,11 +340,11 @@ jQuery(document).ready(function($){
 			p.fields = p.tabellenspalten || plan_format[d].fields;
 			p.classCol = p.tabellenformat || plan_format[d].classCol;
 			// filtern nach von und bis
-			if (data.Spielplan.von && data.Spielplan.bis && data.Spielplan.von.$ > '' && data.Spielplan.bis.$ > '') {
+			if (data.Spielplan.von && data.Spielplan.bis && data.Spielplan.von > '' && data.Spielplan.bis > '') {
 				dd = [];
-				$.each(data.Spielplan.Spielplan, function(i, val) {
-					if (val.SpieldatumTag.$ >= data.Spielplan.von.$ 
-						&& val.SpieldatumTag.$ <= data.Spielplan.bis.$) 
+				$.each(data.Spielplan.Spielplan, function (i, val) {
+					if (val.SpieldatumTag >= data.Spielplan.von
+						&& val.SpieldatumTag <= data.Spielplan.bis)
 						dd.push(val);
 				});
 				data.Spielplan.Spielplan = dd;
@@ -387,8 +353,8 @@ jQuery(document).ready(function($){
 			if (p.nurhalle && p.nurhalle > '') {
 				dd = [];
 				var re = new RegExp(p.nurhalle.replace(",", "|"));
-				$.each(data.Spielplan.Spielplan, function(i, val) {
-					if (val.Halle_Kuerzel && val.Halle_Kuerzel.$ && val.Halle_Kuerzel.$.match(re)) 
+				$.each(data.Spielplan.Spielplan, function (i, val) {
+					if (val.Halle_Kuerzel && val.Halle_Kuerzel.match(re))
 						dd.push(val);
 				});
 				data.Spielplan.Spielplan = dd;
@@ -400,13 +366,13 @@ jQuery(document).ready(function($){
 			d.find("table.srs").addClass(p.class);
 			var t = d.find("tr.srs");
 			$.each(p.classCol.split(/;/), function (i, val) {
-				t.find("td.srs:eq("+i+")").addClass(val).end()
-				 .find("th.srs:eq("+i+")").addClass(val).end();
+				t.find("td.srs:eq(" + i + ")").addClass(val).end()
+					.find("th.srs:eq(" + i + ")").addClass(val).end();
 			});
 			// eigenen Verein einfärben
 			if (p.verein) {
 				t = d.find("tr.srs:gt(0)");
-				t.filter(":contains('"+p.verein+"')").addClass("srsHome");
+				t.filter(":contains('" + p.verein + "')").addClass("srsHome");
 				// rest löschen
 				if (!+p.alle || +p.heimgast) {
 					d.find("tr.srs:gt(0):not(.srsHome)").remove();
@@ -416,9 +382,9 @@ jQuery(document).ready(function($){
 				var sh = $.inArray("HeimTeam_Name_kurz", p.fields.split(/;/));
 				var sa = $.inArray("GastTeam_Name_kurz", p.fields.split(/;/));
 				t = d.find("tr.srs:gt(0)");
-				t.find("td.srs:eq("+sh+"):contains('"+p.verein+"')").parents("tr.srs").addClass("srsHeim");
-				t.find("td.srs:eq("+sa+"):contains('"+p.verein+"')").parents("tr.srs").addClass("srsAusw");
-				t.find("td.srs:contains('"+p.verein+"')").addClass("srsTabHome");
+				t.find("td.srs:eq(" + sh + "):contains('" + p.verein + "')").parents("tr.srs").addClass("srsHeim");
+				t.find("td.srs:eq(" + sa + "):contains('" + p.verein + "')").parents("tr.srs").addClass("srsAusw");
+				t.find("td.srs:contains('" + p.verein + "')").addClass("srsTabHome");
 				// nur heim oder gast stehen lassen
 				if (+p.heimgast === 1) {
 					d.find("tr.srs:gt(0):not(.srsHeim)").remove();
@@ -438,22 +404,22 @@ jQuery(document).ready(function($){
 
 	}
 	// Gesamtspielplan für einen Verein
-	$("div.srsPlanVerein").each(function() {
+	$("div.srsPlanVerein").each(function () {
 		var o = $(this);
 		var p = {};
 		var m;
 		// get all attributes srs*
 		$.each([
-			"srsClub", "srsVerband", "srsSportart", 
-			"srsTitle","srsVerein","srsAlle", "srsHeimGast", 
-			"srsVon", "srsBis", "srsNeueVorne", 
+			"srsClub", "srsVerband", "srsSportart",
+			"srsTitle", "srsVerein", "srsAlle", "srsHeimGast",
+			"srsVon", "srsBis", "srsNeueVorne",
 			"srsNurHalle", "srsOhneHalle", "srsMaxZeilen", "srsClass",
-			"srsTabellenSpalten", "srsTabellenKopf", "srsTabellenFormat" 
-			], function(i, val) {
+			"srsTabellenSpalten", "srsTabellenKopf", "srsTabellenFormat"
+		], function (i, val) {
 			var m = val.match(/^srs(.*)/);
-			if (m && o.attr(val)) {p[m[1].toLowerCase()] = o.attr(val); }
+			if (m && o.attr(val)) { p[m[1].toLowerCase()] = o.attr(val); }
 			val = "data-" + val;
-			if (m && o.attr(val)) {p[m[1].toLowerCase()] = o.attr(val); }
+			if (m && o.attr(val)) { p[m[1].toLowerCase()] = o.attr(val); }
 		});
 		if (!p.verein && !p.club) {
 			o.html("Keinen Verein angegeben");
@@ -464,45 +430,45 @@ jQuery(document).ready(function($){
 		var clubs = p.club.split(",");
 		var dataAll = [];
 		p.club = clubs.shift();
-		if (p.title) m = "<p>"+p.title+"</p>"; else m = "";
-		o.html(m+"<p class=\"srsLaden\">" + (window.srsPlanMsg || "Gesamt-Spielplan " + "" + " wird geladen") + "</p>");
+		if (p.title) m = "<p>" + p.title + "</p>"; else m = "";
+		o.html(m + "<p class=\"srsLaden\">" + (window.srsPlanMsg || "Gesamt-Spielplan " + "" + " wird geladen") + "</p>");
 		p.spielplanverein = 1;
-		var processPart = function() {
+		var processPart = function () {
 			var ligen = p.club.split("/");
 			p.club = ligen.shift();
 			if (ligen.length) ligen = ligen.join("/").toLowerCase().split(";");
 			$.ajax({
-			    type: "GET",
-			    url: basis + "fetch_table.php",
-			    data : p, 
-			    dataType: options.ajaxDataType,
-			    success: function(data, textstatus) {
-				    if (data && data.error && data.error.$) {show_plan(o.get(), data, p); return;}
-				    if (data && data.Spielplan && data.Spielplan.Spielplan) {
-					    dataAll = dataAll.concat(data.Spielplan.Spielplan.filter(function(x) {
-						    if (!x.Liga_Name_kurz || ! x.Liga_Name_kurz.$) return true;
-						    return ligen.length == 0 || ligen.indexOf(x.Liga_Name_kurz.$.toLowerCase()) >= 0;
+				type: "GET",
+				url: basis + "fetch_table.php",
+				data: p,
+				dataType: options.ajaxDataType,
+				success: function (data, textstatus) {
+					if (data && data.error) { show_plan(o.get(), data, p); return; }
+					if (data && data.Spielplan && data.Spielplan.Spielplan) {
+						dataAll = dataAll.concat(data.Spielplan.Spielplan.filter(function (x) {
+							if (!x.Liga_Name_kurz) return true;
+							return ligen.length == 0 || ligen.indexOf(x.Liga_Name_kurz.toLowerCase()) >= 0;
 						}));
-				    }
-				    if (clubs.length > 0) {
-					    p.club = clubs.shift();
-					    processPart();
-					    return;
-				    }
-				    if (dataAll.length) {
-					    dataAll.sort(function(a,b) {
-						    if (a.Spieldatum.$ < b.Spieldatum.$) return (p.neuevorne > 0 ? 1 : -1);
-						    if (a.Spieldatum.$ > b.Spieldatum.$) return (p.neuevorne > 0 ? -1 : 1);
-						    return 0;
-					    });
-				    }
-				    data.Spielplan.Spielplan = dataAll;
-				    p.alle = 0;
-				    show_plan(o.get(), data, p);
-			    },
-			    error: function(XMLHttpRequest, textStatus, errorThrown) {
-				    o.html("Error in GET srsPlanVerein: " + textStatus);
-			    }
+					}
+					if (clubs.length > 0) {
+						p.club = clubs.shift();
+						processPart();
+						return;
+					}
+					if (dataAll.length) {
+						dataAll.sort(function (a, b) {
+							if (a.Spieldatum < b.Spieldatum) return (p.neuevorne > 0 ? 1 : -1);
+							if (a.Spieldatum > b.Spieldatum) return (p.neuevorne > 0 ? -1 : 1);
+							return 0;
+						});
+					}
+					data.Spielplan.Spielplan = dataAll;
+					p.alle = 0;
+					show_plan(o.get(), data, p);
+				},
+				error: function (XMLHttpRequest, textStatus, errorThrown) {
+					o.html("Error in GET srsPlanVerein: " + textStatus);
+				}
 			});
 		}
 		processPart();
@@ -512,7 +478,7 @@ jQuery(document).ready(function($){
 			server: server,
 			ajaxDataType: "json",
 		};
-		$("div.srsConf").each(function() {
+		$("div.srsConf").each(function () {
 			var c = $(this);
 			for (var x in o) {
 				var aname = "srs" + x;
